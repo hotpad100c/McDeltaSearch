@@ -1,17 +1,3 @@
-"""Incremental re-index after the mcdelta repository changes.
-
-Steps
-  1. parse the reports at the repository's current commit            -> corpus.json
-  2. compare with the previous corpus by stable key  version#slug
-     and by a content hash; reuse vectors of unchanged sections      -> only new/changed sections are embedded
-  3. write vecs.npy / owner.npy (same layout as embed_docs.py)
-  4. export docs.json + vectors.bin for the site (export_data.py)
-
-Moving report files between folders does not change keys, so it costs nothing.
-
-Usage: python reindex.py <previous corpus.json> <previous vecs.npy> <previous owner.npy>
-Run from the build directory after editing the paths at the top of parse.py / emb.py.
-"""
 import sys, json, hashlib, subprocess, time, numpy as np
 sys.path.insert(0, '.')
 
@@ -55,7 +41,7 @@ for i, d in enumerate(new['docs']):
 
 print(f'sections: {len(new["docs"])} (old {len(old["docs"])}); windows to embed: {len(todo)}', flush=True)
 if todo:
-    from emb import embed  # loads the ONNX model only when needed
+    from emb import embed
     t0 = time.time()
     order = sorted(todo, key=lambda x: len(x[1]))
     for b in range(0, len(order), 16):

@@ -1,5 +1,4 @@
-// bge-small-zh-v1.5 sentence encoder in plain JavaScript (no WASM, no external fetch).
-// Weights are the int8-quantized ONNX export, dequantized to float32 at load time.
+
 (function (root) {
   'use strict';
   const H = 512, HEADS = 8, HD = 64, FF = 2048, LAYERS = 4;
@@ -83,7 +82,7 @@
       for (let i = 0; i < H; i++) x[o + i] = (x[o + i] - m) * r * w[i] + b[i];
     }
   }
-  // y[T,out] = x[T,in] @ W[in,out] + b
+
   function linear(x, T, W, b, inD, outD) {
     const y = new Float32Array(T * outD);
     for (let t = 0; t < T; t++) {
@@ -97,14 +96,13 @@
     }
     return y;
   }
-  function erf(x) { // Abramowitz-Stegun 7.1.26 refined; max err ~1.5e-7
+  function erf(x) {
     const s = x < 0 ? -1 : 1; x = Math.abs(x);
     const t = 1 / (1 + 0.3275911 * x);
     const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
     return s * y;
   }
 
-  // Binary payloads are shipped as base64 text chunks (listed in blobs.json).
   function b64ToBytes(s, out, offset) {
     const bin = atob(s);
     for (let i = 0; i < bin.length; i++) out[offset + i] = bin.charCodeAt(i);
@@ -121,7 +119,7 @@
       onChars && onChars(s.length);
       off += b64ToBytes(s, bytes, off);
     }
-    // trim base64 padding bytes
+
     return bytes.buffer.slice(0, off);
   }
   async function load(base, onProgress) {

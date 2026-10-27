@@ -32,11 +32,6 @@ FULL_HEADS = ('差异出现的场景', '版本变化', '实际影响')
 
 
 def section_form(parts):
-    """Report template has three entry forms (see mcdelta prompts/snapshot_analysis_worker.md).
-    full   = 完整展开: has the fixed sub-sections
-    merged = 合并简述: no sub-sections, body is a bullet list of several changes
-    single = 单项简述: everything else
-    Form reflects how much explanation a change needs, NOT its importance; importance is the entry order."""
     if any(h in FULL_HEADS for h, _ in parts):
         return 'full'
     lines = [l for l in '\n'.join(t for _, t in parts).split('\n') if l.strip()]
@@ -64,7 +59,7 @@ def parse_file(path):
             cursec['slug'] = slugify(cursec['title'], seen)
             sections.append(cursec)
         elif ln.startswith('### '):
-            slugify(ln[4:], seen)  # keep GitHub's duplicate counters in step
+            slugify(ln[4:], seen)
             if cursec:
                 cursec['lines'].append(ln)
         elif cursec is not None:
@@ -77,13 +72,11 @@ def parse_file(path):
                 for c in JAVA.findall(ln):
                     if c not in classes:
                         classes.append(c)
-                # source path inside guardian (net/minecraft/..., data/minecraft/...), used to infer the change category
                 for x in SRC.findall(ln):
                     if x not in paths:
                         paths.append(x)
                 continue
             body.append(ln)
-        # structured: summary + subsections
         parts, curh, buf = [], '', []
         for ln in body:
             if ln.startswith('### '):

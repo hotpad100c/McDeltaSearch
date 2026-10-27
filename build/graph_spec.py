@@ -1,10 +1,4 @@
-"""Hand-drafted graph: shared mechanism library + glossary concept -> mechanism links.
 
-Every link here is a DRAFT written from general community knowledge, not verified
-against the wiki or source code. `low` marks links I am unsure about.
-"""
-
-# ---- shared mechanism nodes -------------------------------------------------
 M = {
  'piston':       ('活塞推动与回缩时序', ['活塞', '回缩', '推动', '伸出'], ['PistonBaseBlock', 'PistonMovingBlockEntity', 'MovingPistonBlock']),
  'sticky':       ('黏液块与蜂蜜块黏连', ['黏液块', '蜂蜜块', '黏连'], ['PistonStructureResolver', 'SlimeBlock', 'HoneyBlock']),
@@ -68,8 +62,6 @@ M = {
  'container_menu': ('容器界面与交易界面', ['界面'], ['AbstractContainerMenu', 'MerchantMenu']),
 }
 
-# ---- glossary concept -> mechanisms ----------------------------------------
-# key: any Chinese alias of the glossary concept. value: (mechanisms, confidence, extra aliases)
 LINKS = {
  'TNT复制':        (['piston', 'sticky', 'tnt', 'neighbor'], 'draft', ['TNT复制机', '刷TNT', 'TNT duper']),
  '轰炸机':         (['piston', 'sticky', 'tnt', 'observer'], 'draft', []),
@@ -227,7 +219,6 @@ LINKS = {
  '蜜绿':           (['sticky'], 'draft', []),
 }
 
-# aliases that are ordinary words or ambiguous abbreviations: never used for detection
 GENERIC = set('''收集 换算 农场 效率 安全的 种子 同步 体积 堆 存档 核 顺序的 静音 缓存 临时存储 白名单 黑名单 投影 坐标 区块 下界 地狱 生物群系 经验
 掉落物 骷髅 末影人 小黑 小白 即时 瞬时 队列 栈 哈希 动量 脉冲 线路 布线 递归 物品组 区段 子区块 可堆叠 拼接的 帧率 视距 饥饿值 饱和度 敌对生物 中立生物 友好生物
 游戏刻 碰撞箱 边界箱 阵列 架构 复合的 混杂的 动态的 循环的 全局的 局部的 非全局的 其他的 面板 整流 预放置 预填充 单片 平墙 分流 传送带 农场 方向性 位置性

@@ -17,10 +17,7 @@ with open('/root/site/vectors.bin', 'wb') as f:
     f.write(q.tobytes())
 data = {
     'commit': c['commit'], 'nwin': int(n),
-    # versions: [release, file, version, label, number of sections in the report]
     'versions': [[v['release'], v['file'], v['version'], v['label'], v['n']] for v in c['versions']],
-    # docs: [version index, title, slug, parts, classes, form (full|single|merged), rank in report (1-based),
-    #        category inferred from source paths (path_category.py; null when the paths cannot tell)]
     'docs': [[d['v'], d['title'], d['slug'], d['parts'], d['classes'], d['form'], d['rank'], doc_cat(d['paths'], 'majority')]
              for d in c['docs']],
 }

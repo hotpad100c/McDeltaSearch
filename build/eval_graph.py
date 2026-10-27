@@ -12,7 +12,6 @@ class_df = collections.Counter(c for d in docs for c in set(d['classes']))
 
 
 def detect(q):
-    """Longest-alias-wins: an alias inside a longer matched alias (刷铁 in 刷铁轨机) is ignored."""
     ql = q.lower(); spans = []
     for c in G:
         for a in c['aliases']:
@@ -37,7 +36,6 @@ def dense(text):
 
 
 def class_score(concepts):
-    """Each mechanism counts once if the section touches any of its classes (idf-weighted)."""
     s = np.zeros(N)
     for c in concepts:
         for m in c['mechanisms']:

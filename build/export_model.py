@@ -1,11 +1,6 @@
-"""Export bge-small-zh-v1.5 int8 ONNX weights + vocab into the layout encoder.js reads.
-
-Input : ONNX + tokenizer.json of bge-small-zh-v1.5 (quantized, transformers.js layout)
-Output: OUT/model.json, OUT/emb.bin, OUT/layers.bin
-"""
 import sys, json, numpy as np
 sys.path.insert(0, '.')
-from model import load_parts, ROLES, BN, SRC  # SRC points at the model folder; edit model.py to change it
+from model import load_parts, ROLES, BN, SRC
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'out'
 I, mm = load_parts()

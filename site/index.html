@@ -12,7 +12,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Silkscreen&display=swap">
 <style>
-/* Layout: one reading column; search console on top, results as a ledger of version-stamped entries */
 :root {
   --bg: #eef0ec;
   --surface: #f8f9f6;
@@ -126,7 +125,7 @@ ol.results { list-style: none; margin: 0; padding: 0; display: flex; flex-direct
 .tier.t0 { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .tier.t1 { border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent); }
 .form { font-size: 11px; padding: 0 6px; border-radius: 3px; background: var(--chip-snap); color: var(--muted); }
-/* category is inferred from source paths, so it is drawn as a dashed outline rather than a solid chip */
+
 .cat { font-size: 11px; padding: 0 6px; border-radius: 3px; border: 1px dashed var(--line); color: var(--muted); }
 .cat.c0 { color: var(--ink); }
 .entry.t0 .entry-head { box-shadow: inset 3px 0 0 var(--accent); }
@@ -164,7 +163,7 @@ footer a { color: inherit; }
   </header>
 
   <form class="search" id="form" autocomplete="off">
-    <input id="q" type="search" placeholder="用自然语言描述你想找的变化，例如：黏液块弹起后摔落伤害怎么算" aria-label="检索问题">
+    <input id="q" type="search" aria-label="检索问题">
     <button class="go" type="submit">检索</button>
   </form>
 
@@ -193,8 +192,7 @@ footer a { color: inherit; }
 </div>
 
 <script>
-// bge-small-zh-v1.5 sentence encoder in plain JavaScript (no WASM, no external fetch).
-// Weights are the int8-quantized ONNX export, dequantized to float32 at load time.
+
 (function (root) {
   'use strict';
   const H = 512, HEADS = 8, HD = 64, FF = 2048, LAYERS = 4;
@@ -278,7 +276,7 @@ footer a { color: inherit; }
       for (let i = 0; i < H; i++) x[o + i] = (x[o + i] - m) * r * w[i] + b[i];
     }
   }
-  // y[T,out] = x[T,in] @ W[in,out] + b
+
   function linear(x, T, W, b, inD, outD) {
     const y = new Float32Array(T * outD);
     for (let t = 0; t < T; t++) {
@@ -292,14 +290,13 @@ footer a { color: inherit; }
     }
     return y;
   }
-  function erf(x) { // Abramowitz-Stegun 7.1.26 refined; max err ~1.5e-7
+  function erf(x) {
     const s = x < 0 ? -1 : 1; x = Math.abs(x);
     const t = 1 / (1 + 0.3275911 * x);
     const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
     return s * y;
   }
 
-  // Binary payloads are shipped as base64 text chunks (listed in blobs.json).
   function b64ToBytes(s, out, offset) {
     const bin = atob(s);
     for (let i = 0; i < bin.length; i++) out[offset + i] = bin.charCodeAt(i);
@@ -316,7 +313,7 @@ footer a { color: inherit; }
       onChars && onChars(s.length);
       off += b64ToBytes(s, bytes, off);
     }
-    // trim base64 padding bytes
+
     return bytes.buffer.slice(0, off);
   }
   async function load(base, onProgress) {
@@ -425,7 +422,6 @@ footer a { color: inherit; }
     graph: [], classDf: null, concepts: [],
   };
 
-  // ---------- text utilities ----------
   const CJK = /[㐀-鿿豈-﫿]+/g;
   const WORD = /[A-Za-z0-9_.$]+/g;
   function terms(text) {
@@ -467,7 +463,6 @@ footer a { color: inherit; }
     return ['snap', '特殊'];
   }
 
-  // ---------- keyword index (character bigram BM25) ----------
   function buildIndex() {
     const index = new Map(), lens = new Float32Array(S.docs.length);
     S.docs.forEach((d, i) => {
@@ -509,7 +504,6 @@ footer a { color: inherit; }
     return idx.slice(0, k);
   }
 
-  // ---------- search ----------
   function inRange(i) {
     const rel = S.versions[S.docs[i][0]][0];
     const r = S.releases.indexOf(rel);
@@ -518,9 +512,7 @@ footer a { color: inherit; }
     if (f && S.docs[i][5] !== f) return false;
     return catOk(S.docs[i][7] ?? null);
   }
-  // ---------- change category ----------
-  // Inferred at build time from the source paths in each entry's 代码出处 (build/path_category.py), following the
-  // priority table in mcdelta's prompt. Sampled tier accuracy is about 86%, so it filters and labels but never sorts.
+
   const CAT = {
     block_item: ['方块与物品', 0], entity: ['实体与玩家', 0], worldgen: ['地形生成', 0], world_run: ['世界运行', 0],
     network: ['网络协议', 1], admin: ['管理配置', 1], ui: ['界面与显示', 2], command: ['命令与数据包', 2], protocol: ['协议细节', 2],
@@ -540,37 +532,35 @@ footer a { color: inherit; }
       `<optgroup label="按类别">${Object.entries(CAT).map(([k, [t]]) => opt(k, t)).join('')}${opt('none', '无法判断')}</optgroup>`;
   }
   fillCatFilter();
-  // ---------- importance ----------
-  // mcdelta orders entries in each report by their impact on existing gameplay (prompts/snapshot_analysis_worker.md).
-  // The entry form (full / brief / merged) reflects how much explanation a change needs, not its importance.
+
   const FORM_LABEL = { full: '完整分析', single: '简述', merged: '合并简述' };
   function tier(i) {
     const d = S.docs[i], n = S.versions[d[0]][4], r = d[6];
-    if (r === 1) return 0;                    // 本版首要
-    if (r <= Math.ceil(n / 3)) return 1;      // 本版靠前
+    if (r === 1) return 0;
+    if (r <= Math.ceil(n / 3)) return 1;
     return 2;
   }
   const TIER_LABEL = ['本版首要', '本版靠前', ''];
-  // ---------- concept graph: jargon -> mechanisms -> terms & code classes ----------
+
   const ASCII = /^[\x00-\x7f]+$/;
   function detectSpans(q) {
     const ql = q.toLowerCase(), spans = [];
     for (const c of S.graph) for (const a of c.aliases) {
       const al = a.toLowerCase(); let k = ql.indexOf(al);
       while (k >= 0) {
-        // English aliases must stand alone ("TE" must not match inside "state")
+
         const ok = !ASCII.test(a) || (!/[a-z0-9]/i.test(ql[k - 1] || '') && !/[a-z0-9]/i.test(ql[k + al.length] || ''));
         if (ok) spans.push([k, k + al.length, c]);
         k = ql.indexOf(al, k + 1);
       }
     }
-    // longest alias wins: "刷铁" inside "刷铁轨机" is ignored
+
     return spans.filter((s) => !spans.some((o) => o[0] <= s[0] && s[1] <= o[1] && (o[1] - o[0]) > (s[1] - s[0])));
   }
   function detectConcepts(q) {
     return Array.from(new Set(detectSpans(q).sort((a, b) => a[0] - b[0]).map((s) => s[2])));
   }
-  // recognized jargon is removed from keyword matching so its characters don't hit unrelated words (刷石机 vs 切石机)
+
   function stripAliases(q) {
     const sp = detectSpans(q).filter((s) => s[2].mechanisms.length || s[2].role === 'jargon');
     return Array.from(q).filter((_, i) => !sp.some(([a, b]) => a <= i && i < b)).join('');
@@ -637,8 +627,7 @@ footer a { color: inherit; }
     let res = Array.from(score.keys()).sort((a, b) => score.get(b) - score.get(a)).slice(0, 60);
     S.results = res.map((i) => ({ i, rk: rk.get(i), rd: rd.get(i), sim: dn ? dn[i] : null, mech: mechList(S.concepts).length ? mechanismsHit(i, S.concepts) : [] }));
     if (S.sort === 'time') S.results.sort((a, b) => S.docs[a.i][0] - S.docs[b.i][0] || a.i - b.i);
-    // importance: the 20 most relevant results are ordered by tier first, then the rest, so weakly related
-    // "first in its report" entries do not jump ahead of clearly relevant ones
+
     if (S.sort === 'imp') S.results = S.results.map((r, k) => ({ r, k, b: k < 20 ? 0 : 1, t: tier(r.i) }))
       .sort((a, b) => a.b - b.b || a.t - b.t || a.k - b.k).map((x) => x.r);
     S.shown = Math.min(PAGE, S.results.length);
@@ -715,12 +704,11 @@ footer a { color: inherit; }
   }
 
   function setStatus(cls, text, frac) {
-    // the status line only shows while loading or on errors; once ready it disappears
+
     const el = $('status'); el.className = 'status ' + cls; el.hidden = cls === 'ready'; $('status-text').textContent = text;
     $('bar').hidden = frac === null; if (frac !== null) $('bar').firstElementChild.style.width = Math.round(frac * 100) + '%';
   }
 
-  // ---------- wiring ----------
   $('form').addEventListener('submit', (e) => { e.preventDefault(); runSearch($('q').value); });
   const setSort = (s) => { S.sort = s; for (const [id, k] of [['s-rel', 'rel'], ['s-imp', 'imp'], ['s-time', 'time']]) $(id).setAttribute('aria-pressed', s === k); runSearch(S.lastQuery); };
   $('s-imp').addEventListener('click', () => setSort('imp'));
@@ -760,7 +748,7 @@ footer a { color: inherit; }
     } catch (e) {
       setStatus('error', '报告数据载入失败：' + e.message + '。刷新页面重试。', null); return;
     }
-    const TOTAL = 14423384 + 17402540; // base64 characters of model weights
+    const TOTAL = 14423384 + 17402540;
     setStatus('loading', '关键词检索已可用 | 正在下载语义模型（约 23 MB，只需一次）', 0);
     try {
       S.enc = await window.MCEncoder.load('', (n) => setStatus('loading', `关键词检索已可用 | 正在下载语义模型 ${Math.round(n / TOTAL * 100)}%`, n / TOTAL));

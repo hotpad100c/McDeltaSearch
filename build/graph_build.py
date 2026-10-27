@@ -31,7 +31,6 @@ for c in norm:
     aliases = list(dict.fromkeys(zh + en + extra))
     if not aliases: continue
     dfs = {a: df(a) for a in aliases}
-    # English aliases that are common words in the reports are dropped unless explicitly added
     aliases = [a for a in aliases if not (is_en(a) and dfs[a] >= 10 and a not in extra)]
     if not aliases: continue
     role = 'linked' if link else ('jargon' if c['desc'] and max(dfs[a] for a in aliases) < 3 else 'term')

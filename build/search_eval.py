@@ -23,7 +23,6 @@ def terms(text):
     return out
 
 
-# BM25 index
 N = len(docs); df = collections.Counter(); tfs = []; lens = []
 for d in docs:
     t = terms(d['title']) * 3 + terms(' '.join(d['classes'])) * 2 + terms(' '.join(h + ' ' + x for h, x in d['parts']))

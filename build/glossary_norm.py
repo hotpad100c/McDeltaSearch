@@ -1,4 +1,3 @@
-"""Normalize TechMC Glossary rows into concept records (recognition layer)."""
 import csv, json, re, collections
 
 SRC = '/root/dl/glossary/TechMC-Glossary/TechMC Glossary.csv'
@@ -13,7 +12,6 @@ def split_zh(s):
     out = []
     for part in re.split(r'[/／;；,，]', s):
         part = part.strip()
-        # "即时(瞬时)" -> 即时, 瞬时 ; "临时存储(缓存)" -> both
         m = re.match(r'^(.*?)[（(](.*?)[）)]$', part)
         if m:
             out += [m.group(1).strip(), m.group(2).strip()]
@@ -31,7 +29,6 @@ def split_en(s):
         for p in re.split(r'/', part):
             p = re.sub(r'\([^)]*\)', '', p).strip(' .')
             if p: out.append(p)
-    # "Update Suppression/Suppressor" style already split; also strip parenthetical prefixes "(TNT) Basket"
     return list(dict.fromkeys(out))
 
 

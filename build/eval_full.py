@@ -31,7 +31,6 @@ def detect(q):
 
 
 def strip_aliases(q):
-    """Remove recognized jargon from the keyword query so its characters don't match unrelated words."""
     spans = [s for s in detect_spans(q) if s[2]['mechanisms'] or s[2]['role'] == 'jargon']
     keep = [ch for i, ch in enumerate(q) if not any(a <= i < b for a, b, _ in spans)]
     return ''.join(keep)
@@ -48,7 +47,6 @@ KEY2IX = {CORPUS['versions'][d['v']]['version'] + '#' + d['slug']: i for i, d in
 
 
 def ix(k):
-    """Test sets refer to sections by the stable key version#slug, never by list position."""
     if k not in KEY2IX:
         raise KeyError(f'test set refers to a section that no longer exists: {k}')
     return KEY2IX[k]

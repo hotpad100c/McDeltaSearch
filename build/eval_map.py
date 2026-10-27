@@ -7,13 +7,13 @@ import embed_large_q as L
 
 qs = json.load(open('/root/build/eval_questions.json', encoding='utf-8'))
 owner = np.load('/root/build/owner.npy')
-vs = np.load('/root/build/vecs.npy')            # small doc windows
-vl = np.load('/root/build/vecs_large.npy')      # large doc windows
-tl = np.load('/root/build/titles_large.npy')    # large, INSTR+title
-ts = np.load('/root/build/titles_small.npy')    # small (ORT), INSTR+title
+vs = np.load('/root/build/vecs.npy')
+vl = np.load('/root/build/vecs_large.npy')
+tl = np.load('/root/build/titles_large.npy')
+ts = np.load('/root/build/titles_small.npy')
 
 
-def small_q(q):  # exactly what the browser computes
+def small_q(q):
     stok.no_padding(); stok.no_truncation()
     ids = stok.encode(INSTR + q).ids
     return forward(SW, np.array([ids]), np.ones((1, len(ids)), np.float32))[0]
@@ -41,7 +41,6 @@ def rank_of(score, target):
     return int((score > score[target]).sum())
 
 
-# ---- fit linear map small -> large on corpus texts (windows + titles) ----
 X = np.vstack([vs, ts]); Y = np.vstack([vl, tl])
 Xb = np.hstack([X, np.ones((len(X), 1))])
 maps = {}
