@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>[hidden]{display:none!important}body{margin:0}</style>
+</head>
+<body>
+<title>mcdelta 检索</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Silkscreen&display=swap">
+<style>
+/* Layout: one reading column; search console on top, results as a ledger of version-stamped entries */
+:root {
+  --bg: #eef0ec;
+  --surface: #f8f9f6;
+  --ink: #1b211d;
+  --muted: #5b655e;
+  --line: #d3d8d1;
+  --accent: #2d6a45;
+  --accent-ink: #f4f8f3;
+  --mark: #f3dc84;
+  --mark-ink: #2a2410;
+  --chip-snap: #e3e8e1;
+  --chip-pre: #f1e2cf;
+  --chip-pre-ink: #6a4214;
+  --warn: #9a4a1a;
+  --font-body: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-mark: "Silkscreen", var(--font-mono);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131714; --surface: #1a1f1b; --ink: #e2e7e1; --muted: #9aa69d; --line: #2c342e;
+    --accent: #79c08d; --accent-ink: #0f1a12; --mark: #5c4c12; --mark-ink: #fbefc4;
+    --chip-snap: #252c27; --chip-pre: #3a2c1b; --chip-pre-ink: #f0c995; --warn: #e3a074;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131714; --surface: #1a1f1b; --ink: #e2e7e1; --muted: #9aa69d; --line: #2c342e;
+  --accent: #79c08d; --accent-ink: #0f1a12; --mark: #5c4c12; --mark-ink: #fbefc4;
+  --chip-snap: #252c27; --chip-pre: #3a2c1b; --chip-pre-ink: #f0c995; --warn: #e3a074;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body);
+  font-size: 15px; line-height: 1.65;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+}
+.wrap { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+header { display: flex; flex-direction: column; gap: 4px; }
+.brand { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.brand h1 { margin: 0; font-family: var(--font-mark); font-weight: 400; font-size: 30px; letter-spacing: .02em; line-height: 1.1; }
+.brand h1 span { color: var(--accent); }
+.brand .sub { font-size: 15px; color: var(--muted); }
+.stats { font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+form.search { display: flex; gap: 8px; }
+#q {
+  flex: 1; min-width: 0; font: inherit; font-size: 17px; padding: 12px 14px;
+  border: 2px solid var(--ink); border-radius: 4px; background: var(--surface); color: var(--ink);
+}
+#q:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+button, select { font: inherit; color: var(--ink); }
+.go {
+  font-weight: 600; padding: 0 20px; border: 2px solid var(--ink); border-radius: 4px;
+  background: var(--ink); color: var(--bg); cursor: pointer;
+}
+.go:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.go:focus-visible, .chip-q:focus-visible, .seg button:focus-visible, select:focus-visible, .entry-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.examples { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.examples .lbl { font-size: 12px; color: var(--muted); margin-right: 2px; }
+.chip-q {
+  font-size: 13px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line);
+  background: transparent; cursor: pointer; color: var(--ink);
+}
+.chip-q:hover { border-color: var(--accent); color: var(--accent); }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; font-size: 13px; color: var(--muted); }
+.controls label { display: flex; gap: 6px; align-items: center; }
+select { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 3px 6px; font-family: var(--font-mono); font-size: 12px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 3px 10px; cursor: pointer; font-size: 13px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+.status { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); min-height: 20px; }
+.dot { width: 8px; height: 8px; border-radius: 1px; background: var(--line); flex: none; }
+.status.ready .dot { background: var(--accent); }
+.status.loading .dot { background: var(--chip-pre-ink); animation: blink 1s steps(2) infinite; }
+.status.error .dot { background: var(--warn); }
+.status.error { color: var(--warn); }
+@keyframes blink { 50% { opacity: .2; } }
+@media (prefers-reduced-motion: reduce) { .status.loading .dot { animation: none; } }
+.bar { flex: 0 0 120px; height: 6px; background: var(--line); border-radius: 1px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+
+.concept { border: 1px solid var(--line); border-left: 3px solid var(--accent); background: var(--surface); border-radius: 4px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
+.concept .c-head { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+.concept .c-name { font-weight: 600; }
+.concept .c-lbl { font-size: 12px; color: var(--muted); }
+.concept .mechs { display: flex; flex-wrap: wrap; gap: 6px; }
+.mech { font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); }
+.concept .c-note { font-size: 12px; color: var(--muted); }
+.concept .c-desc { font-size: 13px; max-width: 68ch; }
+.concept .mechs .c-lbl { align-self: center; }
+.c-low { font-size: 11px; padding: 0 6px; border-radius: 3px; background: var(--chip-pre); color: var(--chip-pre-ink); }
+.why .via { border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); }
+.toggle { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+.toggle input { accent-color: var(--accent); }
+.summary { font-size: 13px; color: var(--muted); border-bottom: 2px solid var(--ink); padding-bottom: 6px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.summary b { color: var(--ink); font-weight: 600; }
+
+ol.results { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.entry { border-bottom: 1px solid var(--line); }
+.entry-head { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 4px 16px; padding: 14px 4px; cursor: pointer; border-radius: 4px; }
+.entry-head:hover { background: color-mix(in srgb, var(--surface) 70%, transparent); }
+.ver { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.vchip {
+  font-family: var(--font-mono); font-size: 12px; font-weight: 600; padding: 1px 6px; border-radius: 3px;
+  background: var(--chip-snap); color: var(--ink); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+}
+.vchip.pre, .vchip.rc { background: var(--chip-pre); color: var(--chip-pre-ink); }
+.vchip.release { background: var(--accent); color: var(--accent-ink); }
+.vkind { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+.rank { font-size: 11px; font-family: var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.rank b { color: var(--ink); font-weight: 600; }
+.tier { font-size: 11px; padding: 0 6px; border-radius: 3px; border: 1px solid var(--line); color: var(--muted); }
+.tier.t0 { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tier.t1 { border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent); }
+.form { font-size: 11px; padding: 0 6px; border-radius: 3px; background: var(--chip-snap); color: var(--muted); }
+/* category is inferred from source paths, so it is drawn as a dashed outline rather than a solid chip */
+.cat { font-size: 11px; padding: 0 6px; border-radius: 3px; border: 1px dashed var(--line); color: var(--muted); }
+.cat.c0 { color: var(--ink); }
+.entry.t0 .entry-head { box-shadow: inset 3px 0 0 var(--accent); }
+.entry.t1 .entry-head { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--accent) 40%, transparent); }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.body { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.body h3 { margin: 0; font-size: 16px; line-height: 1.45; font-weight: 600; text-wrap: balance; }
+.snip { margin: 0; color: var(--muted); font-size: 14px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.entry-head[aria-expanded="true"] .snip { display: none; }
+mark { background: var(--mark); color: var(--mark-ink); border-radius: 2px; padding: 0 1px; }
+.why { display: flex; gap: 6px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.why span { border: 1px solid var(--line); border-radius: 3px; padding: 0 5px; }
+.detail { padding: 0 4px 18px 132px; display: flex; flex-direction: column; gap: 12px; }
+.detail h4 { margin: 0 0 2px; font-size: 12px; letter-spacing: .08em; color: var(--accent); font-weight: 600; }
+.detail .txt { white-space: pre-wrap; font-size: 14.5px; max-width: 68ch; }
+.classes { display: flex; flex-wrap: wrap; gap: 6px; }
+.classes code { font-family: var(--font-mono); font-size: 11.5px; background: var(--chip-snap); padding: 1px 6px; border-radius: 3px; }
+.src a { color: var(--accent); font-size: 13px; text-underline-offset: 3px; }
+.more { align-self: center; margin-top: 14px; font-size: 13px; padding: 6px 16px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); cursor: pointer; }
+.empty { padding: 28px 4px; color: var(--muted); font-size: 14px; }
+footer { font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+footer a { color: inherit; }
+@media (max-width: 560px) {
+  .entry-head { grid-template-columns: minmax(0, 1fr); }
+  .ver { flex-direction: row; align-items: center; }
+  .detail { padding-left: 4px; }
+  .go { padding: 0 14px; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand"><h1>mc<span>delta</span></h1><span class="sub">版本变更语义检索</span></div>
+    <div class="stats" id="stats">正在载入报告索引…</div>
+  </header>
+
+  <form class="search" id="form" autocomplete="off">
+    <input id="q" type="search" placeholder="用自然语言描述你想找的变化，例如：黏液块弹起后摔落伤害怎么算" aria-label="检索问题">
+    <button class="go" type="submit">检索</button>
+  </form>
+
+  <div class="examples" id="examples"><span class="lbl">试试：</span></div>
+
+  <div class="controls">
+    <label>从 <select id="from" aria-label="起始正式版"></select></label>
+    <label>到 <select id="to" aria-label="结束正式版"></select></label>
+    <span>排序 <span class="seg" role="group" aria-label="排序方式">
+      <button type="button" id="s-rel" aria-pressed="true">相关度</button><button type="button" id="s-imp" aria-pressed="false" title="相关度前 20 条按本版排位分档（首要、靠前、其余）排列，档内按相关度；其余结果随后，排法相同">重要性</button><button type="button" id="s-time" aria-pressed="false">版本时间</button>
+    </span></span>
+    <label>形式 <select id="form-filter" aria-label="条目形式">
+      <option value="">全部</option><option value="full">完整分析</option><option value="single">简述</option><option value="merged">合并简述</option>
+    </select></label>
+    <label title="按代码出处的源码路径自动推断，可能有误；只用于筛选，不参与排序">类别 <select id="cat-filter" aria-label="变更类别（按源码路径推断）"></select></label>
+    <label class="toggle"><input type="checkbox" id="graph" checked> 识别术语与装置黑话，按机制关系扩展</label>
+  </div>
+
+  <div class="status loading" id="status"><span class="dot"></span><span id="status-text">正在载入数据…</span><span class="bar" id="bar"><i></i></span></div>
+
+  <section style="display:flex;flex-direction:column;gap:12px">
+    <div class="concept" id="concept" hidden></div>
+    <div class="summary" id="summary" hidden></div>
+    <ol class="results" id="results"></ol>
+    <div style="display:flex;justify-content:center"><button class="more" id="more" type="button" hidden>显示更多</button></div>
+  </section>
+
+  <footer id="foot">数据来自 <a href="https://github.com/Fallen-Breath/mcdelta" target="_blank" rel="noopener">Fallen-Breath/mcdelta</a>（WTFPL）。装置名称参考 <a href="https://github.com/TechMC-Glossary/TechMC-Glossary" target="_blank" rel="noopener">TechMC Glossary</a>（MIT），术语与机制的依赖关系是人工起草的草稿，未经社区审核。“重要性”取自 mcdelta 每份报告中条目的先后顺序（作者按对已有玩法的实际影响排列）；“完整分析 / 简述 / 合并简述”只反映解释所需的篇幅，不代表重要性。虚线框中的类别（方块与物品、界面与显示等）按代码出处的源码路径自动推断，抽样核对的档位准确率约 86%，只用于标注和筛选，不参与排序。语义模型为 bge-small-zh-v1.5，在你的浏览器里本地运行，检索内容不会发送到任何服务器。</footer>
+</div>
+
+<script>
+// bge-small-zh-v1.5 sentence encoder in plain JavaScript (no WASM, no external fetch).
+// Weights are the int8-quantized ONNX export, dequantized to float32 at load time.
+(function (root) {
+  'use strict';
+  const H = 512, HEADS = 8, HD = 64, FF = 2048, LAYERS = 4;
+  const ROLES = ['attention/self/query', 'attention/self/key', 'attention/self/value',
+    'attention/output/dense', 'intermediate/dense', 'output/dense'];
+
+  function isCJK(cp) {
+    return (cp >= 0x4E00 && cp <= 0x9FFF) || (cp >= 0x3400 && cp <= 0x4DBF) ||
+      (cp >= 0x20000 && cp <= 0x2A6DF) || (cp >= 0x2A700 && cp <= 0x2B73F) ||
+      (cp >= 0x2B740 && cp <= 0x2B81F) || (cp >= 0x2B820 && cp <= 0x2CEAF) ||
+      (cp >= 0xF900 && cp <= 0xFAFF) || (cp >= 0x2F800 && cp <= 0x2FA1F);
+  }
+  function isPunct(cp, ch) {
+    if ((cp >= 33 && cp <= 47) || (cp >= 58 && cp <= 64) || (cp >= 91 && cp <= 96) || (cp >= 123 && cp <= 126)) return true;
+    return /\p{P}/u.test(ch);
+  }
+  function isWS(ch) { return ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r' || /\p{Zs}/u.test(ch); }
+  function isControl(ch) { if (ch === '\t' || ch === '\n' || ch === '\r') return false; return /\p{C}/u.test(ch); }
+
+  function makeTokenizer(vocabList) {
+    const vocab = new Map();
+    vocabList.forEach((t, i) => vocab.set(t, i));
+    const UNK = vocab.get('[UNK]'), CLS = vocab.get('[CLS]'), SEP = vocab.get('[SEP]');
+    function basic(text) {
+      let out = '';
+      for (const ch of text) {
+        const cp = ch.codePointAt(0);
+        if (cp === 0 || cp === 0xFFFD || isControl(ch)) continue;
+        if (isWS(ch)) { out += ' '; continue; }
+        if (isCJK(cp)) { out += ' ' + ch + ' '; continue; }
+        out += ch;
+      }
+      const words = [];
+      for (const w of out.split(' ')) {
+        if (!w) continue;
+        let cur = '';
+        for (const ch of w) {
+          if (isPunct(ch.codePointAt(0), ch)) { if (cur) words.push(cur); words.push(ch); cur = ''; }
+          else cur += ch;
+        }
+        if (cur) words.push(cur);
+      }
+      return words;
+    }
+    function wordpiece(word) {
+      const chars = Array.from(word);
+      if (chars.length > 100) return [UNK];
+      const ids = [];
+      let start = 0;
+      while (start < chars.length) {
+        let end = chars.length, found = -1;
+        while (start < end) {
+          let sub = chars.slice(start, end).join('');
+          if (start > 0) sub = '##' + sub;
+          const id = vocab.get(sub);
+          if (id !== undefined) { found = id; break; }
+          end--;
+        }
+        if (found < 0) return [UNK];
+        ids.push(found);
+        start = end;
+      }
+      return ids;
+    }
+    return function encode(text, maxLen) {
+      const ids = [CLS];
+      for (const w of basic(text)) {
+        for (const id of wordpiece(w)) { if (ids.length < maxLen - 1) ids.push(id); }
+      }
+      ids.push(SEP);
+      return ids;
+    };
+  }
+
+  function layerNorm(x, T, w, b) {
+    for (let t = 0; t < T; t++) {
+      const o = t * H;
+      let m = 0; for (let i = 0; i < H; i++) m += x[o + i]; m /= H;
+      let v = 0; for (let i = 0; i < H; i++) { const d = x[o + i] - m; v += d * d; } v /= H;
+      const r = 1 / Math.sqrt(v + 1e-12);
+      for (let i = 0; i < H; i++) x[o + i] = (x[o + i] - m) * r * w[i] + b[i];
+    }
+  }
+  // y[T,out] = x[T,in] @ W[in,out] + b
+  function linear(x, T, W, b, inD, outD) {
+    const y = new Float32Array(T * outD);
+    for (let t = 0; t < T; t++) {
+      const yo = t * outD, xo = t * inD;
+      for (let j = 0; j < outD; j++) y[yo + j] = b[j];
+      for (let k = 0; k < inD; k++) {
+        const xv = x[xo + k]; if (xv === 0) continue;
+        const wo = k * outD;
+        for (let j = 0; j < outD; j++) y[yo + j] += xv * W[wo + j];
+      }
+    }
+    return y;
+  }
+  function erf(x) { // Abramowitz-Stegun 7.1.26 refined; max err ~1.5e-7
+    const s = x < 0 ? -1 : 1; x = Math.abs(x);
+    const t = 1 / (1 + 0.3275911 * x);
+    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+    return s * y;
+  }
+
+  // Binary payloads are shipped as base64 text chunks (listed in blobs.json).
+  function b64ToBytes(s, out, offset) {
+    const bin = atob(s);
+    for (let i = 0; i < bin.length; i++) out[offset + i] = bin.charCodeAt(i);
+    return bin.length;
+  }
+  async function fetchBlob(base, manifest, name, onChars) {
+    const info = manifest[name];
+    const bytes = new Uint8Array(Math.floor(info.chars / 4) * 3);
+    let off = 0;
+    for (const part of info.parts) {
+      const r = await fetch(base + part);
+      if (!r.ok) throw new Error('无法加载数据文件 ' + part + '（HTTP ' + r.status + '）');
+      const s = await r.text();
+      onChars && onChars(s.length);
+      off += b64ToBytes(s, bytes, off);
+    }
+    // trim base64 padding bytes
+    return bytes.buffer.slice(0, off);
+  }
+  async function load(base, onProgress) {
+    let got = 0;
+    const tick = (n) => { got += n; onProgress && onProgress(got); };
+    const [man, blobs] = await Promise.all([
+      fetch(base + 'model.json').then((r) => { if (!r.ok) throw new Error('model.json HTTP ' + r.status); return r.json(); }),
+      fetch(base + 'blobs.json').then((r) => { if (!r.ok) throw new Error('blobs.json HTTP ' + r.status); return r.json(); }),
+    ]);
+    const [embBuf, layBuf] = await Promise.all([fetchBlob(base, blobs, 'emb', tick), fetchBlob(base, blobs, 'layers', tick)]);
+    const bufs = { emb: embBuf, layers: layBuf };
+    const T = {};
+    for (const t of man.tensors) {
+      const n = t.shape.reduce((a, b) => a * b, 1);
+      const C = t.dtype === 'uint8' ? Uint8Array : t.dtype === 'int8' ? Int8Array : Float32Array;
+      T[t.name] = new C(bufs[t.file], t.offset, n);
+    }
+    const W = { layers: [] };
+    W.word = T.word_q; W.wordScale = man.word_scale; W.wordZp = man.word_zp;
+    W.pos = T.position; W.posScale = man.pos_scale; W.posZp = man.pos_zp;
+    W.tt = T.token_type; W.elnW = T.eln_w; W.elnB = T.eln_b;
+    for (let L = 0; L < LAYERS; L++) {
+      const layer = {};
+      for (const r of ROLES) {
+        const q = T[`${L}/${r}/q`], s = T[`${L}/${r}/s`], z = T[`${L}/${r}/z`];
+        const outD = s.length, inD = q.length / outD;
+        const f = new Float32Array(q.length);
+        for (let k = 0; k < inD; k++) for (let j = 0; j < outD; j++) f[k * outD + j] = (q[k * outD + j] - z[j]) * s[j];
+        layer[r] = { W: f, b: T[`${L}/${r}/b`], inD, outD };
+      }
+      layer.ln1 = [T[`${L}/attention.output.LayerNorm/w`], T[`${L}/attention.output.LayerNorm/b`]];
+      layer.ln2 = [T[`${L}/output.LayerNorm/w`], T[`${L}/output.LayerNorm/b`]];
+      W.layers.push(layer);
+    }
+    const tokenize = makeTokenizer(man.vocab);
+
+    function encode(text, maxLen) {
+      const ids = tokenize(text, maxLen || 128);
+      const Tn = ids.length;
+      let x = new Float32Array(Tn * H);
+      for (let t = 0; t < Tn; t++) {
+        const wo = ids[t] * H, po = t * H;
+        for (let i = 0; i < H; i++) {
+          x[t * H + i] = (W.word[wo + i] - W.wordZp) * W.wordScale + (W.pos[po + i] - W.posZp) * W.posScale + W.tt[i];
+        }
+      }
+      layerNorm(x, Tn, W.elnW, W.elnB);
+      const scale = 1 / Math.sqrt(HD);
+      for (const layer of W.layers) {
+        const lin = (inp, r) => linear(inp, Tn, layer[r].W, layer[r].b, layer[r].inD, layer[r].outD);
+        const q = lin(x, ROLES[0]), k = lin(x, ROLES[1]), v = lin(x, ROLES[2]);
+        const ctx = new Float32Array(Tn * H);
+        const sc = new Float32Array(Tn);
+        for (let h = 0; h < HEADS; h++) {
+          const ho = h * HD;
+          for (let i = 0; i < Tn; i++) {
+            let mx = -Infinity;
+            for (let j = 0; j < Tn; j++) {
+              let d = 0; const qi = i * H + ho, kj = j * H + ho;
+              for (let e = 0; e < HD; e++) d += q[qi + e] * k[kj + e];
+              d *= scale; sc[j] = d; if (d > mx) mx = d;
+            }
+            let sum = 0;
+            for (let j = 0; j < Tn; j++) { sc[j] = Math.exp(sc[j] - mx); sum += sc[j]; }
+            const co = i * H + ho;
+            for (let j = 0; j < Tn; j++) {
+              const p = sc[j] / sum, vj = j * H + ho;
+              for (let e = 0; e < HD; e++) ctx[co + e] += p * v[vj + e];
+            }
+          }
+        }
+        const ao = lin(ctx, ROLES[3]);
+        for (let i = 0; i < x.length; i++) x[i] += ao[i];
+        layerNorm(x, Tn, layer.ln1[0], layer.ln1[1]);
+        const hdn = lin(x, ROLES[4]);
+        for (let i = 0; i < hdn.length; i++) { const a = hdn[i]; hdn[i] = 0.5 * a * (1 + erf(a / Math.SQRT2)); }
+        const fo = lin(hdn, ROLES[5]);
+        for (let i = 0; i < x.length; i++) x[i] += fo[i];
+        layerNorm(x, Tn, layer.ln2[0], layer.ln2[1]);
+      }
+      const out = new Float32Array(H);
+      let n = 0;
+      for (let i = 0; i < H; i++) { out[i] = x[i]; n += x[i] * x[i]; }
+      n = Math.sqrt(n);
+      for (let i = 0; i < H; i++) out[i] /= n;
+      return { vec: out, tokens: Tn };
+    }
+    return { encode, tokenize };
+  }
+  root.MCEncoder = { load, fetchBlob };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function () {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const INSTR = '为这个句子生成表示以用于检索相关文章：';
+  const EXAMPLES = ['TNT复制机失效了', '强转更新抑制为什么不能用了', '珍珠缓存站失效', '船吸掠夺还能用吗', '刷铁机不出铁', '刷石机', '黏液块弹起后摔落伤害怎么算', '服务器资源包大小上限'];
+  const PAGE = 20;
+
+  const S = {
+    docs: null, versions: null, commit: '', releases: [],
+    index: null, df: null, lens: null, avg: 0,
+    vec: null, scale: null, owner: null, nwin: 0,
+    enc: null, sort: 'rel', lastQuery: '', results: [], shown: 0, terms: [],
+    graph: [], classDf: null, concepts: [],
+  };
+
+  // ---------- text utilities ----------
+  const CJK = /[㐀-鿿豈-﫿]+/g;
+  const WORD = /[A-Za-z0-9_.$]+/g;
+  function terms(text) {
+    const out = [];
+    for (const m of text.matchAll(CJK)) {
+      const r = m[0];
+      if (r.length === 1) out.push(r);
+      for (let i = 0; i < r.length - 1; i++) out.push(r.slice(i, i + 2));
+    }
+    for (const m of text.matchAll(WORD)) {
+      const w = m[0].replace(/^\.+|\.+$/g, '').toLowerCase();
+      if (w.length > 1) out.push(w);
+    }
+    return out;
+  }
+  const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function highlight(text, qterms) {
+    if (!qterms.length) return esc(text);
+    const lower = text.toLowerCase();
+    const on = new Uint8Array(text.length);
+    for (const t of qterms) {
+      if (t.length < 2 && !/[㐀-鿿]/.test(t)) continue;
+      let i = lower.indexOf(t);
+      while (i >= 0) { on.fill(1, i, i + t.length); i = lower.indexOf(t, i + 1); }
+    }
+    let out = '', open = false;
+    for (let i = 0; i < text.length; i++) {
+      if (on[i] && !open) { out += '<mark>'; open = true; }
+      if (!on[i] && open) { out += '</mark>'; open = false; }
+      out += esc(text[i]);
+    }
+    return out + (open ? '</mark>' : '');
+  }
+  function vkind(v) {
+    if (/^\d+w\d+[a-z]$/.test(v) || /snapshot/.test(v)) return ['snap', '快照'];
+    if (/-pre|pre-release/.test(v)) return ['pre', '预发布'];
+    if (/-rc/.test(v)) return ['rc', '候选'];
+    if (/^\d+(\.\d+)+$/.test(v)) return ['release', '正式版'];
+    return ['snap', '特殊'];
+  }
+
+  // ---------- keyword index (character bigram BM25) ----------
+  function buildIndex() {
+    const index = new Map(), lens = new Float32Array(S.docs.length);
+    S.docs.forEach((d, i) => {
+      const t = terms(d[1]); const tw = [].concat(t, t, t, terms(d[4].join(' ')), terms(d[4].join(' ')),
+        terms(d[3].map((p) => p[0] + ' ' + p[1]).join(' ')));
+      lens[i] = tw.length;
+      const tf = new Map();
+      for (const x of tw) tf.set(x, (tf.get(x) || 0) + 1);
+      for (const [x, f] of tf) { let p = index.get(x); if (!p) index.set(x, p = []); p.push(i, f); }
+    });
+    S.index = index; S.lens = lens; S.avg = lens.reduce((a, b) => a + b, 0) / lens.length;
+  }
+  function bm25(q) {
+    const N = S.docs.length, s = new Float32Array(N), k1 = 1.2, b = 0.75;
+    for (const t of new Set(terms(q))) {
+      const p = S.index.get(t); if (!p) continue;
+      const df = p.length / 2, idf = Math.log(1 + (N - df + 0.5) / (df + 0.5));
+      for (let j = 0; j < p.length; j += 2) {
+        const i = p[j], f = p[j + 1];
+        s[i] += idf * f * (k1 + 1) / (f + k1 * (1 - b + b * S.lens[i] / S.avg));
+      }
+    }
+    return s;
+  }
+  function dense(qv) {
+    const N = S.docs.length, best = new Float32Array(N).fill(-1), D = 512;
+    for (let w = 0; w < S.nwin; w++) {
+      let d = 0; const o = w * D;
+      for (let k = 0; k < D; k++) d += S.vec[o + k] * qv[k];
+      d *= S.scale[w];
+      const i = S.owner[w]; if (d > best[i]) best[i] = d;
+    }
+    return best;
+  }
+  function topk(arr, k, positiveOnly) {
+    const idx = [];
+    for (let i = 0; i < arr.length; i++) if (!positiveOnly || arr[i] > 0) idx.push(i);
+    idx.sort((a, b) => arr[b] - arr[a]);
+    return idx.slice(0, k);
+  }
+
+  // ---------- search ----------
+  function inRange(i) {
+    const rel = S.versions[S.docs[i][0]][0];
+    const r = S.releases.indexOf(rel);
+    if (r < +$('from').value || r > +$('to').value) return false;
+    const f = $('form-filter').value;
+    if (f && S.docs[i][5] !== f) return false;
+    return catOk(S.docs[i][7] ?? null);
+  }
+  // ---------- change category ----------
+  // Inferred at build time from the source paths in each entry's 代码出处 (build/path_category.py), following the
+  // priority table in mcdelta's prompt. Sampled tier accuracy is about 86%, so it filters and labels but never sorts.
+  const CAT = {
+    block_item: ['方块与物品', 0], entity: ['实体与玩家', 0], worldgen: ['地形生成', 0], world_run: ['世界运行', 0],
+    network: ['网络协议', 1], admin: ['管理配置', 1], ui: ['界面与显示', 2], command: ['命令与数据包', 2], protocol: ['协议细节', 2],
+  };
+  function catOk(c) {
+    const v = $('cat-filter').value;
+    if (!v) return true;
+    if (v === 'tier:0') return !!c && CAT[c][1] === 0;
+    if (v === 'tier:hide2') return !c || CAT[c][1] < 2;
+    if (v === 'none') return !c;
+    return c === v;
+  }
+  function fillCatFilter() {
+    const opt = (v, t) => `<option value="${v}">${t}</option>`;
+    $('cat-filter').innerHTML = opt('', '全部') +
+      `<optgroup label="按档位">${opt('tier:0', '只看重点类')}${opt('tier:hide2', '隐藏不重要类')}</optgroup>` +
+      `<optgroup label="按类别">${Object.entries(CAT).map(([k, [t]]) => opt(k, t)).join('')}${opt('none', '无法判断')}</optgroup>`;
+  }
+  fillCatFilter();
+  // ---------- importance ----------
+  // mcdelta orders entries in each report by their impact on existing gameplay (prompts/snapshot_analysis_worker.md).
+  // The entry form (full / brief / merged) reflects how much explanation a change needs, not its importance.
+  const FORM_LABEL = { full: '完整分析', single: '简述', merged: '合并简述' };
+  function tier(i) {
+    const d = S.docs[i], n = S.versions[d[0]][4], r = d[6];
+    if (r === 1) return 0;                    // 本版首要
+    if (r <= Math.ceil(n / 3)) return 1;      // 本版靠前
+    return 2;
+  }
+  const TIER_LABEL = ['本版首要', '本版靠前', ''];
+  // ---------- concept graph: jargon -> mechanisms -> terms & code classes ----------
+  const ASCII = /^[\x00-\x7f]+$/;
+  function detectSpans(q) {
+    const ql = q.toLowerCase(), spans = [];
+    for (const c of S.graph) for (const a of c.aliases) {
+      const al = a.toLowerCase(); let k = ql.indexOf(al);
+      while (k >= 0) {
+        // English aliases must stand alone ("TE" must not match inside "state")
+        const ok = !ASCII.test(a) || (!/[a-z0-9]/i.test(ql[k - 1] || '') && !/[a-z0-9]/i.test(ql[k + al.length] || ''));
+        if (ok) spans.push([k, k + al.length, c]);
+        k = ql.indexOf(al, k + 1);
+      }
+    }
+    // longest alias wins: "刷铁" inside "刷铁轨机" is ignored
+    return spans.filter((s) => !spans.some((o) => o[0] <= s[0] && s[1] <= o[1] && (o[1] - o[0]) > (s[1] - s[0])));
+  }
+  function detectConcepts(q) {
+    return Array.from(new Set(detectSpans(q).sort((a, b) => a[0] - b[0]).map((s) => s[2])));
+  }
+  // recognized jargon is removed from keyword matching so its characters don't hit unrelated words (刷石机 vs 切石机)
+  function stripAliases(q) {
+    const sp = detectSpans(q).filter((s) => s[2].mechanisms.length || s[2].role === 'jargon');
+    return Array.from(q).filter((_, i) => !sp.some(([a, b]) => a <= i && i < b)).join('');
+  }
+  const mechList = (concepts) => Array.from(new Set(concepts.flatMap((c) => c.mechanisms)));
+  function classScore(concepts) {
+    const N = S.docs.length, s = new Float32Array(N);
+    const mechs = mechList(concepts).map((m) => new Set(m.classes));
+    for (let i = 0; i < N; i++) {
+      const cls = S.docs[i][4]; if (!cls.length) continue;
+      for (const ms of mechs) {
+        let best = 0;
+        for (const c of cls) if (ms.has(c)) best = Math.max(best, Math.log(1 + N / (S.classDf.get(c) || 1)));
+        s[i] += best;
+      }
+    }
+    return s;
+  }
+  function mechanismsHit(i, concepts) {
+    const d = S.docs[i], text = (d[1] + ' ' + d[3].map((p) => p[1]).join(' ')).toLowerCase(), out = [];
+    for (const m of mechList(concepts)) {
+      if (m.classes.some((x) => d[4].includes(x)) || m.terms.filter((t) => t.length > 1 && text.includes(t.toLowerCase())).length >= 2) out.push(m.name);
+    }
+    return Array.from(new Set(out));
+  }
+  function renderConcepts() {
+    const box = $('concept'), cs = S.concepts;
+    if (!cs.length) { box.hidden = true; return; }
+    box.hidden = false;
+    const anyLinked = cs.some((c) => c.mechanisms.length), anyJargon = cs.some((c) => !c.mechanisms.length && c.role === 'jargon');
+    box.innerHTML = cs.map((c) => `<div class="c-head"><span class="c-lbl">识别到术语</span><span class="c-name">${esc(c.name)}</span>${c.aliases.length > 1 ? `<span class="c-lbl">（${esc(c.aliases.filter((a) => a !== c.name).slice(0, 4).join('、'))}）</span>` : ''}${c.confidence === 'low' ? '<span class="c-low">关系置信度低</span>' : ''}</div>
+      ${c.desc ? `<div class="c-desc">${esc(c.desc)}</div>` : ''}
+      ${c.mechanisms.length ? `<div class="mechs"><span class="c-lbl">依赖的机制：</span>${c.mechanisms.map((m) => `<span class="mech" title="${esc(m.classes.join(', '))}">${esc(m.name)}</span>`).join('')}</div>` : ''}`).join('') +
+      `<div class="c-note">${anyLinked ? '结果按这些机制的关键词和代码类额外加权。' : anyJargon ? '结果额外参考了术语释义中的关键词。' : '这个术语没有关联到具体机制，结果仍按原句检索。'}取消上方“识别术语”可以只按原句检索。</div>`;
+  }
+
+  async function runSearch(q) {
+    q = q.trim(); S.lastQuery = q;
+    if (!q || !S.docs) { render(); return; }
+    S.terms = Array.from(new Set(terms(q))).sort((a, b) => b.length - a.length);
+    const useGraph = $('graph').checked && S.graph.length;
+    const kw = bm25(useGraph ? stripAliases(q) : q);
+    let dn = null;
+    if (S.enc) {
+      setStatus('loading', '正在理解问题…', null);
+      await new Promise((r) => setTimeout(r, 16));
+      const t0 = performance.now();
+      const { vec } = S.enc.encode(INSTR + q, 128);
+      dn = dense(vec);
+      setStatus('ready', `语义 + 关键词混合检索 | 本次编码 ${Math.round(performance.now() - t0)} ms`, null);
+    }
+    const score = new Map(), rk = new Map(), rd = new Map();
+    const add = (i, r) => score.set(i, (score.get(i) || 0) + 1 / (60 + r));
+    topk(kw, 300, true).filter(inRange).slice(0, 150).forEach((i, r) => { rk.set(i, r); add(i, r); });
+    if (dn) topk(dn, 300, false).filter(inRange).slice(0, 150).forEach((i, r) => { rd.set(i, r); add(i, r); });
+    S.concepts = useGraph ? detectConcepts(q) : [];
+    if (mechList(S.concepts).length) {
+      const exp = mechList(S.concepts).flatMap((m) => m.terms).join(' ');
+      topk(bm25(exp), 300, true).filter(inRange).slice(0, 150).forEach(add);
+      topk(classScore(S.concepts), 300, true).filter(inRange).slice(0, 150).forEach(add);
+    }
+    const descExp = S.concepts.filter((c) => c.role === 'jargon' && !c.mechanisms.length).map((c) => c.desc).join(' ');
+    if (descExp) topk(bm25(descExp), 300, true).filter(inRange).slice(0, 150).forEach(add);
+    renderConcepts();
+    let res = Array.from(score.keys()).sort((a, b) => score.get(b) - score.get(a)).slice(0, 60);
+    S.results = res.map((i) => ({ i, rk: rk.get(i), rd: rd.get(i), sim: dn ? dn[i] : null, mech: mechList(S.concepts).length ? mechanismsHit(i, S.concepts) : [] }));
+    if (S.sort === 'time') S.results.sort((a, b) => S.docs[a.i][0] - S.docs[b.i][0] || a.i - b.i);
+    // importance: the 20 most relevant results are ordered by tier first, then the rest, so weakly related
+    // "first in its report" entries do not jump ahead of clearly relevant ones
+    if (S.sort === 'imp') S.results = S.results.map((r, k) => ({ r, k, b: k < 20 ? 0 : 1, t: tier(r.i) }))
+      .sort((a, b) => a.b - b.b || a.t - b.t || a.k - b.k).map((x) => x.r);
+    S.shown = Math.min(PAGE, S.results.length);
+    render();
+  }
+
+  function bestSnippet(d) {
+    let best = null, bestHits = -1;
+    for (const [h, t] of d[3]) {
+      if (!t) continue;
+      const lower = t.toLowerCase();
+      let hits = 0, first = -1;
+      for (const x of S.terms) { const k = lower.indexOf(x); if (k >= 0) { hits += x.length; if (first < 0 || k < first) first = k; } }
+      if (hits > bestHits) { bestHits = hits; best = { t, first }; }
+    }
+    if (!best) return '';
+    let { t, first } = best;
+    t = t.replace(/^- /gm, '').replace(/\n+/g, ' ');
+    const start = first > 40 ? first - 30 : 0;
+    return (start ? '…' : '') + t.slice(start, start + 220);
+  }
+
+  function render() {
+    const ol = $('results'); ol.textContent = '';
+    const sum = $('summary');
+    if (!S.lastQuery) { sum.hidden = true; $('more').hidden = true; return; }
+    sum.hidden = false;
+    const mode = S.enc ? '语义 + 关键词' : '仅关键词（语义模型载入后自动重查）';
+    const order = { rel: '按相关度', imp: '按重要性（本版排位）', time: '按版本时间' }[S.sort];
+    sum.innerHTML = `<span>“<b>${esc(S.lastQuery)}</b>” 的前 <b>${S.results.length}</b> 条结果 | ${order}</span><span>${mode}</span>`;
+    if (!S.results.length) {
+      ol.innerHTML = '<li class="empty">没有找到匹配的变更。可以换一种说法，或放宽上方的版本范围。</li>';
+      $('more').hidden = true; return;
+    }
+    const frag = document.createDocumentFragment();
+    S.results.slice(0, S.shown).forEach((r, n) => frag.appendChild(entry(r, n)));
+    ol.appendChild(frag);
+    $('more').hidden = S.shown >= S.results.length;
+  }
+
+  function entry(r, n) {
+    const d = S.docs[r.i], v = S.versions[d[0]];
+    const [kind, kindLabel] = vkind(v[2]);
+    const t = tier(r.i), nInReport = v[4];
+    const li = document.createElement('li'); li.className = 'entry t' + t;
+    const why = [];
+    if (r.rd !== undefined) why.push(`语义 #${r.rd + 1}${r.sim !== null ? ' / ' + r.sim.toFixed(2) : ''}`);
+    if (r.rk !== undefined) why.push(`关键词 #${r.rk + 1}`);
+    const via = r.mech.map((m) => `<span class="via">机制：${esc(m)}</span>`).join('');
+    li.innerHTML = `
+      <div class="entry-head" tabindex="0" role="button" aria-expanded="false">
+        <div class="ver"><span class="vchip ${kind}" title="${esc(v[2])}">${esc(v[2])}</span><span class="vkind">${kindLabel} / ${esc(v[0])}</span></div>
+        <div class="body">
+          <h3>${highlight(d[1], S.terms)}</h3>
+          <div class="meta">${t < 2 ? `<span class="tier t${t}">${TIER_LABEL[t]}</span>` : ''}<span class="rank" title="mcdelta 报告按对已有玩法的实际影响排列条目">本版第 <b>${d[6]}</b>/${nInReport} 条</span><span class="form" title="形式反映解释所需的篇幅，不代表重要性">${FORM_LABEL[d[5]]}</span>${d[7] && CAT[d[7]] ? `<span class="cat c${CAT[d[7]][1]}" title="按源码路径自动推断的类别，可能有误；不参与排序">${CAT[d[7]][0]}</span>` : ''}</div>
+          <p class="snip">${highlight(bestSnippet(d), S.terms)}</p>
+          <div class="why">${why.map((w) => `<span>${w}</span>`).join('')}${via}</div>
+        </div>
+      </div>`;
+    const head = li.firstElementChild;
+    const toggle = () => {
+      const open = head.getAttribute('aria-expanded') === 'true';
+      head.setAttribute('aria-expanded', String(!open));
+      if (open) { li.querySelector('.detail').remove(); return; }
+      const det = document.createElement('div'); det.className = 'detail';
+      det.innerHTML = d[3].map(([h, t]) => `<div>${h ? `<h4>${esc(h)}</h4>` : ''}<div class="txt">${highlight(t, S.terms)}</div></div>`).join('') +
+        (d[4].length ? `<div class="classes">${d[4].map((c) => `<code>${esc(c)}</code>`).join('')}</div>` : '') +
+        `<div class="src"><a href="https://github.com/Fallen-Breath/mcdelta/blob/${S.commit}/reports/${encodeURIComponent(v[0])}/${encodeURIComponent(v[1])}.md#${encodeURIComponent(d[2])}" target="_blank" rel="noopener">在 GitHub 查看原文与代码出处 ↗</a></div>`;
+      li.appendChild(det);
+    };
+    head.addEventListener('click', toggle);
+    head.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+    return li;
+  }
+
+  function setStatus(cls, text, frac) {
+    const el = $('status'); el.className = 'status ' + cls; $('status-text').textContent = text;
+    $('bar').hidden = frac === null; if (frac !== null) $('bar').firstElementChild.style.width = Math.round(frac * 100) + '%';
+  }
+
+  // ---------- wiring ----------
+  $('form').addEventListener('submit', (e) => { e.preventDefault(); runSearch($('q').value); });
+  for (const ex of EXAMPLES) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip-q'; b.textContent = ex;
+    b.addEventListener('click', () => { $('q').value = ex; runSearch(ex); });
+    $('examples').appendChild(b);
+  }
+  const setSort = (s) => { S.sort = s; for (const [id, k] of [['s-rel', 'rel'], ['s-imp', 'imp'], ['s-time', 'time']]) $(id).setAttribute('aria-pressed', s === k); runSearch(S.lastQuery); };
+  $('s-imp').addEventListener('click', () => setSort('imp'));
+  $('form-filter').addEventListener('change', () => runSearch(S.lastQuery));
+  $('cat-filter').addEventListener('change', () => runSearch(S.lastQuery));
+  $('s-rel').addEventListener('click', () => setSort('rel'));
+  $('s-time').addEventListener('click', () => setSort('time'));
+  $('from').addEventListener('change', () => { if (+$('from').value > +$('to').value) $('to').value = $('from').value; runSearch(S.lastQuery); });
+  $('to').addEventListener('change', () => { if (+$('to').value < +$('from').value) $('from').value = $('to').value; runSearch(S.lastQuery); });
+  $('graph').addEventListener('change', () => runSearch(S.lastQuery));
+  $('more').addEventListener('click', () => { S.shown = Math.min(S.shown + PAGE, S.results.length); render(); });
+
+  async function boot() {
+    try {
+      const [docs, vbuf] = await Promise.all([
+        fetch('docs.json').then((r) => { if (!r.ok) throw new Error('docs.json HTTP ' + r.status); return r.json(); }),
+        fetch('blobs.json').then((r) => { if (!r.ok) throw new Error('blobs.json HTTP ' + r.status); return r.json(); })
+          .then((m) => window.MCEncoder.fetchBlob('', m, 'vectors')),
+      ]);
+      S.docs = docs.docs; S.versions = docs.versions; S.commit = docs.commit; S.nwin = docs.nwin;
+      const n = S.nwin;
+      S.scale = new Float32Array(vbuf, 0, n);
+      S.owner = new Uint16Array(vbuf, 4 * n, n);
+      const voff = 4 * n + 2 * n + ((2 * n) % 4 ? 2 : 0);
+      S.vec = new Int8Array(vbuf, voff, n * 512);
+      S.releases = Array.from(new Set(S.versions.map((v) => v[0])));
+      S.releases.forEach((r, i) => { $('from').add(new Option(r, i)); $('to').add(new Option(r, i)); });
+      $('to').value = S.releases.length - 1;
+      const first = S.versions[0][2], last = S.versions[S.versions.length - 1][2];
+      $('stats').textContent = `${first} → ${last} | ${S.versions.length} 个版本 | ${S.docs.length} 条变更 | 数据提交 ${S.commit.slice(0, 7)}`;
+      buildIndex();
+      try {
+        const g = await fetch('concepts.json').then((r) => r.json());
+        S.graph = g.concepts.map((c) => ({ ...c, mechanisms: c.mechanisms.map((id) => g.mechanisms[id]).filter(Boolean) }));
+        S.classDf = new Map();
+        for (const d of S.docs) for (const c of new Set(d[4])) S.classDf.set(c, (S.classDf.get(c) || 0) + 1);
+      } catch (e) { S.graph = []; }
+      $('q').value = EXAMPLES[0];
+      runSearch(EXAMPLES[0]);
+    } catch (e) {
+      setStatus('error', '报告数据载入失败：' + e.message + '。刷新页面重试。', null); return;
+    }
+    const TOTAL = 14423384 + 17402540; // base64 characters of model weights
+    setStatus('loading', '关键词检索已可用 | 正在下载语义模型（约 23 MB，只需一次）', 0);
+    try {
+      S.enc = await window.MCEncoder.load('', (n) => setStatus('loading', `关键词检索已可用 | 正在下载语义模型 ${Math.round(n / TOTAL * 100)}%`, n / TOTAL));
+      setStatus('ready', '语义 + 关键词混合检索已就绪', null);
+      if (S.lastQuery) runSearch(S.lastQuery);
+    } catch (e) {
+      S.enc = null;
+      setStatus('error', '语义模型载入失败，目前只用关键词检索：' + e.message, null);
+    }
+  }
+  boot();
+})();
+</script>
+
+</body>
+</html>

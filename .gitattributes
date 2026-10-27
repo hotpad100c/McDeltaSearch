@@ -1,0 +1,3 @@
+* text=auto eol=lf
+# base64 weight and vector chunks: keep bytes exactly as built
+site/*.txt -text

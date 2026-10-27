@@ -1,0 +1,496 @@
+{
+ "_note": "试点版概念依赖图（草稿，待审核）。aliases 来自 TechMC Glossary 及常见说法；mechanisms 为人工起草的依赖关系。",
+ "concepts": [
+  {
+   "id": "tnt_duping",
+   "name": "TNT复制",
+   "aliases": [
+    "TNT复制",
+    "TNT复制机",
+    "刷TNT",
+    "TNT duper",
+    "TNT duping",
+    "轰炸机",
+    "三向轰炸机",
+    "垂直复制采矿机",
+    "复制采矿机",
+    "VDQ"
+   ],
+   "glossary": [
+    "TNT Duping",
+    "Bomber",
+    "3 Way Duper",
+    "Vertical Duping Quarry"
+   ],
+   "mechanisms": [
+    {
+     "name": "活塞推动与回缩时序",
+     "terms": [
+      "活塞",
+      "回缩",
+      "推动",
+      "移动方块"
+     ],
+     "classes": [
+      "PistonBaseBlock",
+      "PistonMovingBlockEntity",
+      "MovingPistonBlock"
+     ]
+    },
+    {
+     "name": "黏液块与蜂蜜块黏连",
+     "terms": [
+      "黏液块",
+      "蜂蜜块",
+      "黏连"
+     ],
+     "classes": [
+      "PistonStructureResolver",
+      "SlimeBlock",
+      "HoneyBlock"
+     ]
+    },
+    {
+     "name": "TNT 激活",
+     "terms": [
+      "TNT",
+      "点燃",
+      "激活"
+     ],
+     "classes": [
+      "TntBlock",
+      "PrimedTnt"
+     ]
+    },
+    {
+     "name": "邻居更新顺序",
+     "terms": [
+      "邻居更新",
+      "方块更新"
+     ],
+     "classes": [
+      "NeighborUpdater",
+      "CollectingNeighborUpdater"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "zero_tick",
+   "name": "零刻（0t）",
+   "aliases": [
+    "零刻",
+    "0t",
+    "0刻",
+    "0-tick",
+    "0 tick",
+    "zero tick",
+    "0t催熟",
+    "零刻农场"
+   ],
+   "glossary": [
+    "0-tick"
+   ],
+   "mechanisms": [
+    {
+     "name": "同一游戏刻内活塞伸缩",
+     "terms": [
+      "活塞",
+      "同一游戏刻"
+     ],
+     "classes": [
+      "PistonBaseBlock"
+     ]
+    },
+    {
+     "name": "计划刻与随机刻",
+     "terms": [
+      "计划刻",
+      "随机刻"
+     ],
+     "classes": [
+      "ServerTickList",
+      "LevelTicks",
+      "LevelChunkTicks"
+     ]
+    },
+    {
+     "name": "植物生长",
+     "terms": [
+      "催熟",
+      "甘蔗",
+      "仙人掌",
+      "竹子",
+      "紫颂花"
+     ],
+     "classes": [
+      "SugarCaneBlock",
+      "CactusBlock",
+      "BambooBlock",
+      "GrowingPlantHeadBlock",
+      "ChorusFlowerBlock"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "update_suppression",
+   "name": "更新抑制",
+   "aliases": [
+    "更新抑制",
+    "更新抑制器",
+    "抑制器",
+    "update suppression",
+    "update suppressor"
+   ],
+   "glossary": [
+    "Update Suppression",
+    "Cast (Update) Suppression",
+    "Stack Overflow (Update) Suppression",
+    "OOM (Update) Suppression"
+   ],
+   "mechanisms": [
+    {
+     "name": "邻居更新与形状更新的传播",
+     "terms": [
+      "邻居更新",
+      "形状更新",
+      "传播深度",
+      "连锁更新"
+     ],
+     "classes": [
+      "NeighborUpdater",
+      "CollectingNeighborUpdater",
+      "BlockBehaviour"
+     ]
+    },
+    {
+     "name": "更新过程中的异常与崩溃处理",
+     "terms": [
+      "栈溢出",
+      "异常",
+      "崩溃",
+      "内存耗尽"
+     ],
+     "classes": [
+      "BlockableEventLoop",
+      "PacketUtils"
+     ]
+    },
+    {
+     "name": "比较器读取方块实体（强转抑制）",
+     "terms": [
+      "比较器",
+      "潜影盒",
+      "方块实体",
+      "类型"
+     ],
+     "classes": [
+      "ShulkerBoxBlock",
+      "ComparatorBlock",
+      "BlockEntity"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "iron_farm",
+   "name": "刷铁机",
+   "aliases": [
+    "刷铁机",
+    "刷铁",
+    "铁傀儡农场",
+    "iron farm"
+   ],
+   "glossary": [
+    "Iron Farm"
+   ],
+   "mechanisms": [
+    {
+     "name": "村民召唤铁傀儡",
+     "terms": [
+      "召唤",
+      "铁傀儡",
+      "村民",
+      "恐慌",
+      "冷却"
+     ],
+     "classes": [
+      "Villager",
+      "GolemSensor",
+      "VillagerPanicTrigger"
+     ]
+    },
+    {
+     "name": "铁傀儡生成位置",
+     "terms": [
+      "生成位置",
+      "落点",
+      "生成地面"
+     ],
+     "classes": [
+      "SpawnUtil",
+      "IronGolem"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "gravity_dupe",
+   "name": "刷沙机（重力方块复制）",
+   "aliases": [
+    "刷沙机",
+    "刷沙",
+    "沙子复制",
+    "重力方块复制",
+    "gravity block duper",
+    "sand duper"
+   ],
+   "glossary": [
+    "Gravity Block Duper",
+    "Sand Duping/Sand Duper"
+   ],
+   "mechanisms": [
+    {
+     "name": "下落方块实体",
+     "terms": [
+      "下落方块",
+      "下落的方块"
+     ],
+     "classes": [
+      "FallingBlockEntity"
+     ]
+    },
+    {
+     "name": "实体穿过末地传送门",
+     "terms": [
+      "末地传送门",
+      "传送门",
+      "传送"
+     ],
+     "classes": [
+      "EndPortalBlock"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "pearl_cannon",
+   "name": "珍珠炮",
+   "aliases": [
+    "珍珠炮",
+    "pearl cannon",
+    "珍珠加农炮"
+   ],
+   "glossary": [
+    "Pearl cannon"
+   ],
+   "mechanisms": [
+    {
+     "name": "末影珍珠的运动与落点",
+     "terms": [
+      "末影珍珠",
+      "落点",
+      "气泡柱"
+     ],
+     "classes": [
+      "ThrownEnderpearl",
+      "ThrowableProjectile"
+     ]
+    },
+    {
+     "name": "爆炸推动",
+     "terms": [
+      "爆炸",
+      "推动",
+      "眼高"
+     ],
+     "classes": [
+      "Explosion",
+      "PrimedTnt"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "flying_machine",
+   "name": "飞行器",
+   "aliases": [
+    "飞行器",
+    "flying machine"
+   ],
+   "glossary": [
+    "Flying Machine"
+   ],
+   "mechanisms": [
+    {
+     "name": "黏液块与蜂蜜块黏连",
+     "terms": [
+      "黏液块",
+      "蜂蜜块",
+      "黏连"
+     ],
+     "classes": [
+      "PistonStructureResolver",
+      "SlimeBlock",
+      "HoneyBlock"
+     ]
+    },
+    {
+     "name": "侦测器触发",
+     "terms": [
+      "侦测器"
+     ],
+     "classes": [
+      "ObserverBlock"
+     ]
+    },
+    {
+     "name": "活塞推动",
+     "terms": [
+      "活塞",
+      "推动"
+     ],
+     "classes": [
+      "PistonBaseBlock",
+      "PistonMovingBlockEntity"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "rail_carpet_dupe",
+   "name": "铁轨/地毯复制",
+   "aliases": [
+    "刷铁轨",
+    "刷铁轨机",
+    "铁轨复制",
+    "地毯复制",
+    "地毯复制机",
+    "刷地毯",
+    "rail duper",
+    "carpet duper"
+   ],
+   "glossary": [
+    "Rail Duping/Rail Duper",
+    "Carpet Duping/Duper"
+   ],
+   "mechanisms": [
+    {
+     "name": "活塞推动与方块掉落",
+     "terms": [
+      "活塞",
+      "掉落",
+      "移动"
+     ],
+     "classes": [
+      "PistonBaseBlock",
+      "PistonMovingBlockEntity"
+     ]
+    },
+    {
+     "name": "铁轨与地毯的支撑和更新",
+     "terms": [
+      "铁轨",
+      "地毯",
+      "支撑"
+     ],
+     "classes": [
+      "BaseRailBlock",
+      "DetectorRailBlock",
+      "CarpetBlock",
+      "WoolCarpetBlock"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "cce_suppression",
+   "name": "强转更新抑制（CCE 抑制）",
+   "parent": "update_suppression",
+   "aliases": [
+    "强转更新抑制",
+    "强转抑制",
+    "强制类型转换更新抑制",
+    "CCE抑制",
+    "CCE suppression",
+    "潜影盒抑制",
+    "shulker suppression"
+   ],
+   "glossary": [
+    "Cast (Update) Suppression"
+   ],
+   "mechanisms": [
+    {
+     "name": "比较器读取潜影盒的方块实体",
+     "terms": [
+      "比较器",
+      "潜影盒",
+      "方块实体",
+      "读取"
+     ],
+     "classes": [
+      "ShulkerBoxBlock",
+      "ComparatorBlock",
+      "BlockEntity"
+     ]
+    },
+    {
+     "name": "方块实体替换",
+     "terms": [
+      "方块实体",
+      "不匹配"
+     ],
+     "classes": [
+      "BlockEntity",
+      "LevelChunk"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "stack_suppression",
+   "name": "栈溢出更新抑制",
+   "parent": "update_suppression",
+   "aliases": [
+    "栈溢出更新抑制",
+    "栈溢出抑制",
+    "stack overflow suppression",
+    "内存溢出更新抑制",
+    "OOM抑制"
+   ],
+   "glossary": [
+    "Stack Overflow (Update) Suppression",
+    "OOM (Update) Suppression"
+   ],
+   "mechanisms": [
+    {
+     "name": "邻居更新与形状更新的传播",
+     "terms": [
+      "邻居更新",
+      "形状更新",
+      "传播深度",
+      "连锁更新"
+     ],
+     "classes": [
+      "NeighborUpdater",
+      "CollectingNeighborUpdater",
+      "BlockBehaviour"
+     ]
+    },
+    {
+     "name": "栈溢出与内存耗尽处理",
+     "terms": [
+      "栈溢出",
+      "内存耗尽",
+      "异常"
+     ],
+     "classes": [
+      "CollectingNeighborUpdater",
+      "PacketUtils"
+     ]
+    }
+   ]
+  }
+ ]
+}

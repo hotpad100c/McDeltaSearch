@@ -1,0 +1,8 @@
+# local analysis outputs (not published)
+out/
+# build intermediates
+__pycache__/
+*.npy
+*.bin
+corpus*.json
+glossary_norm.json
