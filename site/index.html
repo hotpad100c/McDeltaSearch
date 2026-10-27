@@ -632,9 +632,7 @@ footer a { color: inherit; }
     const sum = $('summary');
     if (!S.lastQuery) { sum.hidden = true; $('more').hidden = true; return; }
     sum.hidden = false;
-    const mode = S.enc ? '语义 + 关键词' : '仅关键词（语义模型载入后自动重查）';
-    const order = { rel: '按相关度', imp: '按重要性（本版排位）', time: '按版本时间' }[S.sort];
-    sum.innerHTML = `<span>“<b>${esc(S.lastQuery)}</b>” 的前 <b>${S.results.length}</b> 条结果 | ${order}</span><span>${mode}</span>`;
+    sum.innerHTML = `<span>“<b>${esc(S.lastQuery)}</b>” 的前 <b>${S.results.length}</b> 条结果</span>`;
     if (!S.results.length) {
       ol.innerHTML = '<li class="empty">没有找到匹配的变更。可以换一种说法，或放宽上方的版本范围。</li>';
       $('more').hidden = true; return;
