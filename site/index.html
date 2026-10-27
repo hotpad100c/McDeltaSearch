@@ -59,7 +59,6 @@ header { display: flex; flex-direction: column; gap: 4px; }
 .brand { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .brand h1 { margin: 0; font-family: var(--font-mark); font-weight: 400; font-size: 30px; letter-spacing: .02em; line-height: 1.1; }
 .brand h1 span { color: var(--accent); }
-.brand .sub { font-size: 15px; color: var(--muted); }
 .stats { font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 form.search { display: flex; gap: 8px; }
@@ -84,6 +83,7 @@ select { background: var(--surface); border: 1px solid var(--line); border-radiu
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 
 .status { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); min-height: 20px; }
+.status[hidden] { display: none; }
 .dot { width: 8px; height: 8px; border-radius: 1px; background: var(--line); flex: none; }
 .status.ready .dot { background: var(--accent); }
 .status.loading .dot { background: var(--chip-pre-ink); animation: blink 1s steps(2) infinite; }
@@ -105,8 +105,6 @@ select { background: var(--surface); border: 1px solid var(--line); border-radiu
 .concept .mechs .c-lbl { align-self: center; }
 .c-low { font-size: 11px; padding: 0 6px; border-radius: 3px; background: var(--chip-pre); color: var(--chip-pre-ink); }
 .why .via { border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); }
-.toggle { display: flex; gap: 6px; align-items: center; cursor: pointer; }
-.toggle input { accent-color: var(--accent); }
 .summary { font-size: 13px; color: var(--muted); border-bottom: 2px solid var(--ink); padding-bottom: 6px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .summary b { color: var(--ink); font-weight: 600; }
 
@@ -161,7 +159,7 @@ footer a { color: inherit; }
 
 <div class="wrap">
   <header>
-    <div class="brand"><h1>mc<span>delta</span></h1><span class="sub">版本变更语义检索</span></div>
+    <div class="brand"><h1>mc<span>delta</span></h1></div>
     <div class="stats" id="stats">正在载入报告索引…</div>
   </header>
 
@@ -180,7 +178,6 @@ footer a { color: inherit; }
       <option value="">全部</option><option value="full">完整分析</option><option value="single">简述</option><option value="merged">合并简述</option>
     </select></label>
     <label title="按代码出处的源码路径自动推断，可能有误；只用于筛选，不参与排序">类别 <select id="cat-filter" aria-label="变更类别（按源码路径推断）"></select></label>
-    <label class="toggle"><input type="checkbox" id="graph" checked> 识别术语与装置黑话，按机制关系扩展</label>
   </div>
 
   <div class="status loading" id="status"><span class="dot"></span><span id="status-text">正在载入数据…</span><span class="bar" id="bar"><i></i></span></div>
@@ -607,23 +604,22 @@ footer a { color: inherit; }
     box.innerHTML = cs.map((c) => `<div class="c-head"><span class="c-lbl">识别到术语</span><span class="c-name">${esc(c.name)}</span>${c.aliases.length > 1 ? `<span class="c-lbl">（${esc(c.aliases.filter((a) => a !== c.name).slice(0, 4).join('、'))}）</span>` : ''}${c.confidence === 'low' ? '<span class="c-low">关系置信度低</span>' : ''}</div>
       ${c.desc ? `<div class="c-desc">${esc(c.desc)}</div>` : ''}
       ${c.mechanisms.length ? `<div class="mechs"><span class="c-lbl">依赖的机制：</span>${c.mechanisms.map((m) => `<span class="mech" title="${esc(m.classes.join(', '))}">${esc(m.name)}</span>`).join('')}</div>` : ''}`).join('') +
-      `<div class="c-note">${anyLinked ? '结果按这些机制的关键词和代码类额外加权。' : anyJargon ? '结果额外参考了术语释义中的关键词。' : '这个术语没有关联到具体机制，结果仍按原句检索。'}取消上方“识别术语”可以只按原句检索。</div>`;
+      `<div class="c-note">${anyLinked ? '结果按这些机制的关键词和代码类额外加权。' : anyJargon ? '结果额外参考了术语释义中的关键词。' : '这个术语没有关联到具体机制，结果仍按原句检索。'}</div>`;
   }
 
   async function runSearch(q) {
     q = q.trim(); S.lastQuery = q;
     if (!q || !S.docs) { render(); return; }
     S.terms = Array.from(new Set(terms(q))).sort((a, b) => b.length - a.length);
-    const useGraph = $('graph').checked && S.graph.length;
+    const useGraph = S.graph.length > 0;
     const kw = bm25(useGraph ? stripAliases(q) : q);
     let dn = null;
     if (S.enc) {
       setStatus('loading', '正在理解问题…', null);
       await new Promise((r) => setTimeout(r, 16));
-      const t0 = performance.now();
       const { vec } = S.enc.encode(INSTR + q, 128);
       dn = dense(vec);
-      setStatus('ready', `语义 + 关键词混合检索 | 本次编码 ${Math.round(performance.now() - t0)} ms`, null);
+      setStatus('ready', '', null);
     }
     const score = new Map(), rk = new Map(), rd = new Map();
     const add = (i, r) => score.set(i, (score.get(i) || 0) + 1 / (60 + r));
@@ -719,7 +715,8 @@ footer a { color: inherit; }
   }
 
   function setStatus(cls, text, frac) {
-    const el = $('status'); el.className = 'status ' + cls; $('status-text').textContent = text;
+    // the status line only shows while loading or on errors; once ready it disappears
+    const el = $('status'); el.className = 'status ' + cls; el.hidden = cls === 'ready'; $('status-text').textContent = text;
     $('bar').hidden = frac === null; if (frac !== null) $('bar').firstElementChild.style.width = Math.round(frac * 100) + '%';
   }
 
@@ -733,7 +730,6 @@ footer a { color: inherit; }
   $('s-time').addEventListener('click', () => setSort('time'));
   $('from').addEventListener('change', () => { if (+$('from').value > +$('to').value) $('to').value = $('from').value; runSearch(S.lastQuery); });
   $('to').addEventListener('change', () => { if (+$('to').value < +$('from').value) $('from').value = $('to').value; runSearch(S.lastQuery); });
-  $('graph').addEventListener('change', () => runSearch(S.lastQuery));
   $('more').addEventListener('click', () => { S.shown = Math.min(S.shown + PAGE, S.results.length); render(); });
 
   async function boot() {
@@ -753,7 +749,7 @@ footer a { color: inherit; }
       S.releases.forEach((r, i) => { $('from').add(new Option(r, i)); $('to').add(new Option(r, i)); });
       $('to').value = S.releases.length - 1;
       const first = S.versions[0][2], last = S.versions[S.versions.length - 1][2];
-      $('stats').textContent = `${first} → ${last} | ${S.versions.length} 个版本 | ${S.docs.length} 条变更 | 数据提交 ${S.commit.slice(0, 7)}`;
+      $('stats').textContent = `${first} → ${last}`;
       buildIndex();
       try {
         const g = await fetch('concepts.json').then((r) => r.json());
@@ -768,7 +764,7 @@ footer a { color: inherit; }
     setStatus('loading', '关键词检索已可用 | 正在下载语义模型（约 23 MB，只需一次）', 0);
     try {
       S.enc = await window.MCEncoder.load('', (n) => setStatus('loading', `关键词检索已可用 | 正在下载语义模型 ${Math.round(n / TOTAL * 100)}%`, n / TOTAL));
-      setStatus('ready', '语义 + 关键词混合检索已就绪', null);
+      setStatus('ready', '', null);
       if (S.lastQuery) runSearch(S.lastQuery);
     } catch (e) {
       S.enc = null;
