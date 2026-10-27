@@ -690,7 +690,7 @@ footer a { color: inherit; }
     const via = r.mech.map((m) => `<span class="via">机制：${esc(m)}</span>`).join('');
     li.innerHTML = `
       <div class="entry-head" tabindex="0" role="button" aria-expanded="false">
-        <div class="ver"><span class="vchip ${kind}" title="${esc(v[2])}">${esc(v[2])}</span><span class="vkind">${kindLabel} / ${esc(v[0])}</span></div>
+        <div class="ver"><span class="vchip ${kind}" title="${esc(v[2])}">${esc(v[2])}</span><span class="vkind">${kindLabel} - ${esc(v[0])}</span></div>
         <div class="body">
           <h3>${highlight(d[1], S.terms)}</h3>
           <div class="meta">${t < 2 ? `<span class="tier t${t}">${TIER_LABEL[t]}</span>` : ''}<span class="rank" title="mcdelta 报告按对已有玩法的实际影响排列条目">本版第 <b>${d[6]}</b>/${nInReport} 条</span><span class="form" title="形式反映解释所需的篇幅，不代表重要性">${FORM_LABEL[d[5]]}</span>${d[7] && CAT[d[7]] ? `<span class="cat c${CAT[d[7]][1]}" title="按源码路径自动推断的类别，可能有误；不参与排序">${CAT[d[7]][0]}</span>` : ''}</div>
@@ -749,7 +749,7 @@ footer a { color: inherit; }
       S.releases.forEach((r, i) => { $('from').add(new Option(r, i)); $('to').add(new Option(r, i)); });
       $('to').value = S.releases.length - 1;
       const first = S.versions[0][2], last = S.versions[S.versions.length - 1][2];
-      $('stats').textContent = `${first} → ${last}`;
+      $('stats').textContent = `${first} ~ ${last}`;
       buildIndex();
       try {
         const g = await fetch('concepts.json').then((r) => r.json());
