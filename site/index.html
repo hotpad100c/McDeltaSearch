@@ -93,16 +93,6 @@ select { background: var(--surface); border: 1px solid var(--line); border-radiu
 .bar { flex: 0 0 120px; height: 6px; background: var(--line); border-radius: 1px; overflow: hidden; }
 .bar i { display: block; height: 100%; width: 0; background: var(--accent); }
 
-.concept { border: 1px solid var(--line); border-left: 3px solid var(--accent); background: var(--surface); border-radius: 4px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
-.concept .c-head { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
-.concept .c-name { font-weight: 600; }
-.concept .c-lbl { font-size: 12px; color: var(--muted); }
-.concept .mechs { display: flex; flex-wrap: wrap; gap: 6px; }
-.mech { font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); }
-.concept .c-note { font-size: 12px; color: var(--muted); }
-.concept .c-desc { font-size: 13px; max-width: 68ch; }
-.concept .mechs .c-lbl { align-self: center; }
-.c-low { font-size: 11px; padding: 0 6px; border-radius: 3px; background: var(--chip-pre); color: var(--chip-pre-ink); }
 .why .via { border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); }
 .summary { font-size: 13px; color: var(--muted); border-bottom: 2px solid var(--ink); padding-bottom: 6px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .summary b { color: var(--ink); font-weight: 600; }
@@ -182,7 +172,6 @@ footer a { color: inherit; }
   <div class="status loading" id="status"><span class="dot"></span><span id="status-text">正在载入数据…</span><span class="bar" id="bar"><i></i></span></div>
 
   <section style="display:flex;flex-direction:column;gap:12px">
-    <div class="concept" id="concept" hidden></div>
     <div class="summary" id="summary" hidden></div>
     <ol class="results" id="results"></ol>
     <div style="display:flex;justify-content:center"><button class="more" id="more" type="button" hidden>显示更多</button></div>
@@ -586,17 +575,6 @@ footer a { color: inherit; }
     }
     return Array.from(new Set(out));
   }
-  function renderConcepts() {
-    const box = $('concept'), cs = S.concepts;
-    if (!cs.length) { box.hidden = true; return; }
-    box.hidden = false;
-    const anyLinked = cs.some((c) => c.mechanisms.length), anyJargon = cs.some((c) => !c.mechanisms.length && c.role === 'jargon');
-    box.innerHTML = cs.map((c) => `<div class="c-head"><span class="c-lbl">识别到术语</span><span class="c-name">${esc(c.name)}</span>${c.aliases.length > 1 ? `<span class="c-lbl">（${esc(c.aliases.filter((a) => a !== c.name).slice(0, 4).join('、'))}）</span>` : ''}${c.confidence === 'low' ? '<span class="c-low">关系置信度低</span>' : ''}</div>
-      ${c.desc ? `<div class="c-desc">${esc(c.desc)}</div>` : ''}
-      ${c.mechanisms.length ? `<div class="mechs"><span class="c-lbl">依赖的机制：</span>${c.mechanisms.map((m) => `<span class="mech" title="${esc(m.classes.join(', '))}">${esc(m.name)}</span>`).join('')}</div>` : ''}`).join('') +
-      `<div class="c-note">${anyLinked ? '结果按这些机制的关键词和代码类额外加权。' : anyJargon ? '结果额外参考了术语释义中的关键词。' : '这个术语没有关联到具体机制，结果仍按原句检索。'}</div>`;
-  }
-
   async function runSearch(q) {
     q = q.trim(); S.lastQuery = q;
     if (!q || !S.docs) { render(); return; }
@@ -623,7 +601,6 @@ footer a { color: inherit; }
     }
     const descExp = S.concepts.filter((c) => c.role === 'jargon' && !c.mechanisms.length).map((c) => c.desc).join(' ');
     if (descExp) topk(bm25(descExp), 300, true).filter(inRange).slice(0, 150).forEach(add);
-    renderConcepts();
     let res = Array.from(score.keys()).sort((a, b) => score.get(b) - score.get(a)).slice(0, 60);
     S.results = res.map((i) => ({ i, rk: rk.get(i), rd: rd.get(i), sim: dn ? dn[i] : null, mech: mechList(S.concepts).length ? mechanismsHit(i, S.concepts) : [] }));
     if (S.sort === 'time') S.results.sort((a, b) => S.docs[a.i][0] - S.docs[b.i][0] || a.i - b.i);
