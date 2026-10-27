@@ -1,4 +1,4 @@
-# MdDeltaSearch：mcdelta 版本变更检索
+# McDeltaSearch：mcdelta 版本变更检索
 
 用自然语言检索 [Fallen-Breath/mcdelta](https://github.com/Fallen-Breath/mcdelta) 中 Minecraft 19w36a → 26.4-snapshot-5 的全部版本变更分析（448 个版本，6227 条变更）。
 
