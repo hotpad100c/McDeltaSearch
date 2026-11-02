@@ -5,7 +5,7 @@ COMMIT = os.popen(f'git -C {REPO} rev-parse HEAD').read().strip()
 
 LINK = re.compile(r'\[([^\]]*)\]\(([^)]*)\)')
 JAVA = re.compile(r'/([A-Za-z0-9_$]+)\.java')
-SRC = re.compile(r'\]\((?:https://github\.com/TISUnion/guardian/blob/[0-9a-f]+/)?(?:src/main/(?:java|resources)/)?([^)#]+)')
+SRC = re.compile(r'\]\((?:https://github\.com/TISUnion/guardian/blob/[0-9a-f]+/)?(?:src/main/(?:java|resources)/)?([^)#:]+)')
 
 
 def vkey(name):
@@ -34,11 +34,7 @@ FULL_HEADS = ('差异出现的场景', '版本变化', '实际影响')
 def section_form(parts):
     if any(h in FULL_HEADS for h, _ in parts):
         return 'full'
-    lines = [l for l in '\n'.join(t for _, t in parts).split('\n') if l.strip()]
-    bullets = [l for l in lines if l.lstrip().startswith('- ')]
-    if len(bullets) >= 2 and lines and lines[0].lstrip().startswith('- '):
-        return 'merged'
-    return 'single'
+    return 'brief'
 
 
 def parse_file(path):
@@ -67,8 +63,13 @@ def parse_file(path):
     out = []
     for i, s in enumerate(sections):
         classes, paths, body = [], [], []
+        in_src = False
         for ln in s['lines']:
             if ln.startswith('代码出处'):
+                in_src = True
+            elif in_src and ln.strip() and not ln.lstrip().startswith('- '):
+                in_src = False
+            if in_src:
                 for c in JAVA.findall(ln):
                     if c not in classes:
                         classes.append(c)

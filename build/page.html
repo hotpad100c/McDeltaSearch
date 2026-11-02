@@ -156,7 +156,7 @@ footer a { color: inherit; }
       <button type="button" id="s-rel" aria-pressed="true">相关度</button><button type="button" id="s-imp" aria-pressed="false" title="相关度前 20 条按本版排位分档（首要、靠前、其余）排列，档内按相关度；其余结果随后，排法相同">重要性</button><button type="button" id="s-time" aria-pressed="false">版本时间</button>
     </span></span>
     <label>形式 <select id="form-filter" aria-label="条目形式">
-      <option value="">全部</option><option value="full">完整分析</option><option value="single">简述</option><option value="merged">合并简述</option>
+      <option value="">全部</option><option value="full">完整分析</option><option value="brief">简述</option>
     </select></label>
     <label title="按代码出处的源码路径自动推断，可能有误；只用于筛选，不参与排序">类别 <select id="cat-filter" aria-label="变更类别（按源码路径推断）"></select></label>
   </div>
@@ -301,7 +301,7 @@ footer a { color: inherit; }
   }
   fillCatFilter();
 
-  const FORM_LABEL = { full: '完整分析', single: '简述', merged: '合并简述' };
+  const FORM_LABEL = { full: '完整分析', brief: '简述' };
   function tier(i) {
     const d = S.docs[i], n = S.versions[d[0]][4], r = d[6];
     if (r === 1) return 0;
@@ -436,7 +436,7 @@ footer a { color: inherit; }
         <div class="ver"><span class="vchip ${kind}" title="${esc(v[2])}">${esc(v[2])}</span><span class="vkind">${kindLabel} - ${esc(v[0])}</span></div>
         <div class="body">
           <h3>${highlight(d[1], S.terms)}</h3>
-          <div class="meta">${t < 2 ? `<span class="tier t${t}">${TIER_LABEL[t]}</span>` : ''}<span class="rank" title="mcdelta 报告按对已有玩法的实际影响排列条目">本版第 <b>${d[6]}</b>/${nInReport} 条</span><span class="form" title="形式反映解释所需的篇幅，不代表重要性">${FORM_LABEL[d[5]]}</span>${d[7] && CAT[d[7]] ? `<span class="cat c${CAT[d[7]][1]}" title="按源码路径自动推断的类别，可能有误；不参与排序">${CAT[d[7]][0]}</span>` : ''}</div>
+          <div class="meta">${t < 2 ? `<span class="tier t${t}">${TIER_LABEL[t]}</span>` : ''}<span class="rank" title="mcdelta 报告按对已有玩法的实际影响排列条目">本版第 <b>${d[6]}</b>/${nInReport} 条</span><span class="form" title="mcdelta 默认用完整结构分析；只有不重要且简单的修改才用列表简述">${FORM_LABEL[d[5]]}</span>${d[7] && CAT[d[7]] ? `<span class="cat c${CAT[d[7]][1]}" title="按源码路径自动推断的类别，可能有误；不参与排序">${CAT[d[7]][0]}</span>` : ''}</div>
           <p class="snip">${highlight(bestSnippet(d), S.terms)}</p>
           <div class="why">${why.map((w) => `<span>${w}</span>`).join('')}${via}</div>
         </div>
